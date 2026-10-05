@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Transport{% endblock %}
+
+{% block host_select %}
+    {% if request.user.is_admin %}
+        <div class="ms-auto me-0 me-md-4 pt-2 pt-md-0 order-1 order-md-0 col-12 col-md-auto header-host">
+            {% include 'parts/host_select.html' %}
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block content_title %}
+    Transport
+{% endblock %}
+
+{% block content %}
+    <div class="col-12">
+        {% if not server_config %}
+            <div class="alert alert-warning">
+                Installed server configuration was not found.
+            </div>
+        {% endif %}
+
+        <form class="check-change-js" method="POST">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label {% if form.status.errors %}text-danger{% endif %}">
+                    Transport module:
+                </label>
+                {{ form.status }}
+                {% if form.status.errors %}
+                    <div class="invalid-feedback d-block">{{ form.status.errors|join:', ' }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label {% if form.allowed_components.errors %}text-danger{% endif %}">
+                    Allowed component domains:
+                </label>
+                {{ form.allowed_components }}
+                {% if form.allowed_components.errors %}
+                    <div class="invalid-feedback d-block">{{ form.allowed_components.errors|join:', ' }}</div>
+                {% endif %}
+            </div>
+
+            <button class="btn btn-primary btn-secondary" type="submit" name="save" disabled>
+                Save
+            </button>
+        </form>
+    </div>
+{% endblock %}

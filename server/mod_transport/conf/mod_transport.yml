@@ -1,0 +1,3 @@
+allowed_components:
+  - "max.example.com"
+  - "telegram.example.com"

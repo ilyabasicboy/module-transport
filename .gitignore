@@ -1,0 +1,10 @@
+.env
+build/
+*.beam
+*.tar.gz
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+server/mod_transport/ebin/
