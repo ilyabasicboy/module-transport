@@ -1,3 +1,4 @@
 allowed_components:
   - "max.example.com"
   - "telegram.example.com"
+iq_auth_secret: "replace-with-shared-roster-iq-secret"

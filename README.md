@@ -23,6 +23,15 @@ Both `max.example.com` and `telegram.example.com` can be placed in the same
 `allowed_components` list. A component may manage only contacts whose JIDs
 belong to one of the allowed component domains.
 
+Every roster IQ must also contain `auth-signature`, an HMAC-SHA256 signature of
+the stanza `id`. Configure the same secret (at least 32 bytes) in the module UI
+and in the transport configuration:
+
+```ini
+[security]
+iq_auth_secret = replace-with-a-long-random-secret
+```
+
 ## Build
 
 ```bash

@@ -45,6 +45,19 @@
                 {% endif %}
             </div>
 
+            <div class="mb-3">
+                <label class="form-label {% if form.iq_auth_secret.errors %}text-danger{% endif %}">
+                    Roster IQ HMAC secret:
+                </label>
+                {{ form.iq_auth_secret }}
+                {% if form.iq_auth_secret.help_text %}
+                    <div class="form-text">{{ form.iq_auth_secret.help_text }}</div>
+                {% endif %}
+                {% if form.iq_auth_secret.errors %}
+                    <div class="invalid-feedback d-block">{{ form.iq_auth_secret.errors|join:', ' }}</div>
+                {% endif %}
+            </div>
+
             <button class="btn btn-primary btn-secondary" type="submit" name="save" disabled>
                 Save
             </button>

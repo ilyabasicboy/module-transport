@@ -50,10 +50,12 @@ depends(_Host, _Opts) ->
     [{mod_roster, hard}].
 
 mod_options(_Host) ->
-    [{allowed_components, []}].
+    [{allowed_components, []}, {iq_auth_secret, <<>>}].
 
 mod_opt_type(allowed_components) ->
     fun normalize_allowed_components/1;
+mod_opt_type(iq_auth_secret) ->
+    fun to_binary/1;
 mod_opt_type(_) ->
     [allowed_components].
 
@@ -63,6 +65,9 @@ mod_doc() ->
         opts => [
             {allowed_components, #{
                 value => <<"component domains allowed to manage their roster contacts">>
+            }},
+            {iq_auth_secret, #{
+                value => <<"shared secret used to authenticate roster IQ requests">>
             }}
         ]
     }.
@@ -79,7 +84,12 @@ decode_iq_subel(#xmlel{} = El) ->
 process_iq(#iq{type = set, lang = Lang} = IQ) ->
     case authorize_iq(IQ) of
         ok ->
-            process_authorized_iq(IQ);
+            case authenticate_iq(IQ) of
+                ok ->
+                    process_authorized_iq(IQ);
+                {error, Text} ->
+                    xmpp:make_error(IQ, xmpp:err_forbidden(Text, Lang))
+            end;
         {error, Text} ->
             xmpp:make_error(IQ, xmpp:err_forbidden(Text, Lang))
     end;
@@ -176,6 +186,48 @@ authorize_iq(
     end;
 authorize_iq(_) ->
     {error, <<"Transport roster operations require bare component and server JIDs">>}.
+
+authenticate_iq(
+    #iq{
+        id = IQId,
+        to = #jid{lserver = Host},
+        sub_els = [#xmlel{attrs = Attrs}]
+    }
+) when is_binary(IQId), IQId =/= <<>> ->
+    Secret = gen_mod:get_module_opt(Host, ?MODULE, iq_auth_secret, <<>>),
+    Signature = attr(<<"auth-signature">>, Attrs),
+    case {byte_size(Secret) >= 32, decode_hex(Signature)} of
+        {true, {ok, Received}} ->
+            Expected = crypto:mac(hmac, sha256, Secret, IQId),
+            case constant_time_equal(Expected, Received) of
+                true -> ok;
+                false -> {error, <<"Invalid roster IQ authentication signature">>}
+            end;
+        {false, _} ->
+            {error, <<"Roster IQ authentication secret is not configured">>};
+        {_, _} ->
+            {error, <<"Invalid roster IQ authentication signature">>}
+    end;
+authenticate_iq(_) ->
+    {error, <<"Roster IQ id and authentication signature are required">>}.
+
+decode_hex(Value) when is_binary(Value), byte_size(Value) =:= 64 ->
+    try binary:decode_hex(Value) of
+        Decoded -> {ok, Decoded}
+    catch
+        error:badarg -> error
+    end;
+decode_hex(_) ->
+    error.
+
+constant_time_equal(Left, Right) when byte_size(Left) =:= byte_size(Right) ->
+    0 =:= lists:foldl(
+        fun({A, B}, Difference) -> Difference bor (A bxor B) end,
+        0,
+        lists:zip(binary_to_list(Left), binary_to_list(Right))
+    );
+constant_time_equal(_, _) ->
+    false.
 
 validate_owner_and_contact(Payload) ->
     case {
